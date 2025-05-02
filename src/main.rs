@@ -1,36 +1,38 @@
 use std::env;
 use std::fs;
+use std::process;
 
-/*
-1. main 함수가 두가지 일을 수행함, 프로그램 증가에 따라 main 함수에서 처리하는 개별작업의 개수가 증가
-2. main이 길어질수록 필요한 변수들이 더 많이 스코프 안에 있게 되고, 추적이 어려워짐
-3. 파일 읽기 실패 시 expect를 사용했는데, 파일읽기실패가 다양한 경우가 있음에도 하나의 오류메세지만 출력함
-4. 모든 에러처리코드가 한곳에 모여있는것이 추후 유지보수하기 좋을것
-*/
-
-fn main(){
+fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let config = Config::new(&args);
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
 
     println!("Searching for {}", config.query);
     println!("In file {}", config.file_path);
 
-    let contents = fs::read_to_string(config.file_path).expect("Should have been able to read file");
+    let contents =
+        fs::read_to_string(config.file_path).expect("Should have been able to read file");
 
     println!("With text :\n{contents}");
 }
 
 struct Config {
     query: String,
-    file_path: String
+    file_path: String,
 }
 
-impl Config{
-    fn new(args:&[String]) -> Config{
+impl Config {
+    fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("Not Enough Arguments");
+        }
+
         let query = args[1].clone();
         let file_path = args[2].clone();
 
-        Config {query, file_path}
+        Ok(Config { query, file_path })
     }
 }
